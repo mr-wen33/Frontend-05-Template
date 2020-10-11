@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .cell {
+            display: inline-block;
+            width: 80px;
+            height: 80px;
+            line-height: 80px;
+            font-size: 40px;
+            text-align: center;
+            border: 1px solid #fff;
+            vertical-align: middle;
+            cursor: pointer;
+            background-color: aqua;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="board"></div>
+</body>
+
+</html>
+<script>
+    const pattern = [
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 0, 0],
+    ];
+
+    const USER_PLAYER = 1;
+    const COMP_PLAYER = 2;
+
+    function render() {
+        const board = document.getElementById('board');
+        board.innerHTML = '';
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                if (pattern[i][j] === USER_PLAYER) {
+                    cell.innerText = '⭕';
+                }
+                if (pattern[i][j] === COMP_PLAYER) {
+                    cell.innerText = '❌';
+                }
+                cell.addEventListener('click', () => userMove(i, j));
+                board.appendChild(cell);
+            }
+            board.appendChild(document.createElement('br'));
+        }
+    }
+
+    function userMove(x, y) {
+        if (pattern[x][y]) {
+            return;
+        }
+        pattern[x][y] = USER_PLAYER;
+        render();
+        if (check(pattern, USER_PLAYER)) {
+            alert('你获胜了');
+            return;
+        }
+        compMove();
+    }
+
+    // AI 移动
+    function compMove() {
+        const choice = bestChoice(pattern);
+        console.log(choice);
+        if (choice.point) {
+            const [x, y] = choice.point;
+            pattern[x][y] = COMP_PLAYER;
+            render();
+            if (check(pattern, COMP_PLAYER)) {
+                alert('电脑获胜了');
+            }
+        }
+    }
+
+    function clone(pattern) {
+        return JSON.parse(JSON.stringify(pattern));
+    }
+
+    // 检查是否赢了
+    function check(pattern, player) {
+        // 检查横向
+        for (let i = 0; i < 3; i++) {
+            let win = true;
+            for (let j = 0; j < 3; j++) {
+                if (pattern[i][j] !== player) {
+                    win = false;
+                }
+            }
+            if (win) {
+                return true;
+            }
+        }
+        // 检查纵向
+        for (let i = 0; i < 3; i++) {
+            let win = true;
+            for (let j = 0; j < 3; j++) {
+                if (pattern[j][i] !== player) {
+                    win = false;
+                }
+            }
+            if (win) {
+                return true;
+            }
+        }
+        // 检查对角线
+        {
+            let win = true;
+            for (let i = 0; i < 3; i++) {
+                if (pattern[i][i] !== player) {
+                    win = false;
+                }
+            }
+            if (win) {
+                return true;
+            }
+        }
+        {
+            let win = true;
+            for (let i = 0; i < 3; i++) {
+                if (pattern[i][2 - i] !== player) {
+                    win = false;
+                }
+            }
+            if (win) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    // 检查是否即将赢了
+    function willWin(pattern, player) {
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                if (pattern[i][j]) {
+                    continue;
+                } else {
+                    const tmp = clone(pattern);
+                    tmp[i][j] = player;
+                    if (check(tmp, player)) {
+                        return [i, j];
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    // 最佳选择 -1：输了 0：和 1：赢了
+    function bestChoice(pattern, player) {
+        const po = willWin(pattern, player);
+        if (po) {
+            console.log(po);
+            return {
+                point: po,
+                result: 1
+            }
+        }
+
+        let result = -2;
+        let point = null;
+        outer:for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                if (pattern[i][j]) {
+                    continue;
+                } else {
+                    let tmp = clone(pattern);
+                    tmp[i][j] = COMP_PLAYER;
+                    let r = bestChoice(tmp, player === USER_PLAYER ? COMP_PLAYER : USER_PLAYER).result;   
+                    if( -r >= result) {
+                        point = [i, j];
+                        result = -r;
+                    }
+                    if (r === -1) {
+                        break outer;
+                    }
+                }
+            }
+        }
+        return {
+            point: point,
+            result: point ? result : 0
+        }
+    }
+
+    render();
+</script>
